@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineVerse - Movie Booking System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body { background: #020617; }
+.movie-card:hover { transform: translateY(-8px); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+}
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+</style>
+</head>
+<body class="text-white min-h-screen">
+
+<header class="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-lg border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-r from-pink-500 to-purple-600 p-3 rounded-xl">
+                <i class="fas fa-film text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">CineVerse</h1>
+                <p class="text-xs text-slate-400">Smart Movie Booking System</p>
+            </div>
+        </div>
+        <nav class="flex gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+            <button onclick="showTab('home')" class="tab-btn px-4 py-2 rounded-lg bg-indigo-600 transition"><i class="fas fa-home mr-2"></i>Home</button>
+            <button onclick="showTab('booking')" class="tab-btn px-4 py-2 rounded-lg hover:bg-slate-800 transition"><i class="fas fa-ticket-alt mr-2"></i>Book Tickets</button>
+            <button onclick="showTab('dashboard')" class="tab-btn px-4 py-2 rounded-lg hover:bg-slate-800 transition"><i class="fas fa-chart-bar mr-2"></i>Dashboard</button>
+            <button onclick="showTab('users')" class="tab-btn px-4 py-2 rounded-lg hover:bg-slate-800 transition"><i class="fas fa-users mr-2"></i>Users</button>
+            <button onclick="showTab('bookings')" class="tab-btn px-4 py-2 rounded-lg hover:bg-slate-800 transition"><i class="fas fa-calendar-alt mr-2"></i>Bookings</button>
+        </nav>
+    </div>
+</header>
+
+<div class="max-w-7xl mx-auto p-6">
+<div id="notificationContainer"></div>
+
+<!-- Home Tab -->
+<div id="home" class="tab-content active">
+    <div class="bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900 rounded-3xl p-10 mb-10">
+        <h2 class="text-5xl font-bold mb-4">🎬 Welcome to CineVerse</h2>
+        <p class="text-slate-200 text-lg mb-6">Book movie tickets instantly and enjoy a premium cinema experience.</p>
+        <button onclick="showTab('booking')" class="bg-white text-black px-6 py-3 rounded-xl font-bold hover:scale-105 transition">Book Now <i class="fas fa-arrow-right ml-2"></i></button>
+    </div>
+    <h2 class="text-3xl font-bold mb-6">Now Showing</h2>
+    <div id="moviesList" class="grid md:grid-cols-4 gap-6"></div>
+</div>
+
+<!-- Booking Tab -->
+<div id="booking" class="tab-content">
+    <div class="bg-slate-900 rounded-3xl p-8 border border-slate-800">
+        <h2 class="text-3xl font-bold mb-2">🎟️ Book Your Tickets</h2>
+        <p class="text-slate-400 mb-8">Fill in the details below to book your movie tickets.</p>
+        <div class="grid md:grid-cols-2 gap-6">
+            <div><label class="block mb-2 font-semibold">Select User</label><select id="bookingUserId" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"><option value="">Select a user...</option></select></div>
+            <div><label class="block mb-2 font-semibold">Or Create New User</label><button onclick="showAddUserModal()" class="w-full bg-indigo-600 border border-slate-700 rounded-xl p-3 hover:bg-indigo-700 transition"><i class="fas fa-user-plus mr-2"></i>Add New User</button></div>
+            <div><label class="block mb-2 font-semibold">Select Movie</label><select id="bookingMovieId" onchange="loadShowsForBooking()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"><option value="">Select a movie...</option></select></div>
+            <div><label class="block mb-2 font-semibold">Select Show Time</label><select id="bookingShowId" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"><option value="">First select a movie...</option></select></div>
+            <div><label class="block mb-2 font-semibold">Number of Tickets</label><input type="number" id="bookingTickets" min="1" max="10" value="1" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"></div>
+            <div><label class="block mb-2 font-semibold">Total Price</label><input type="text" id="bookingTotalPrice" readonly class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-green-400 font-bold"></div>
+        </div>
+        <div class="flex gap-4 mt-8">
+            <button onclick="calculatePrice()" class="bg-slate-700 px-6 py-3 rounded-xl font-bold hover:bg-slate-600 transition"><i class="fas fa-calculator mr-2"></i>Calculate Price</button>
+            <button onclick="confirmBooking()" class="bg-gradient-to-r from-pink-500 to-purple-600 px-8 py-3 rounded-xl font-bold hover:scale-105 transition"><i class="fas fa-check-circle mr-2"></i>Confirm Booking</button>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard Tab -->
+<div id="dashboard" class="tab-content">
+    <h2 class="text-3xl font-bold mb-8">📊 Booking Dashboard</h2>
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-slate-900 rounded-2xl p-6">
+            <h3 class="text-xl font-bold mb-4">Analytical Queries</h3>
+            <select id="querySelector" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 mb-4">
+                <option value="1">1. All Movies</option><option value="2">2. Shows by Movie</option><option value="3">3. Bookings with User Details</option>
+                <option value="4">4. Bookings with Movie & Theatre</option><option value="5">5. Movie Booking Count</option><option value="6">6. Movies with >100 Bookings</option>
+                <option value="7">7. Movies Above Average Price</option><option value="8">8. Users Above Average Bookings</option>
+                <option value="9">9. All Movies with Bookings</option><option value="10">10. Shows with No Bookings</option>
+            </select>
+            <button onclick="executeQuery()" class="w-full bg-indigo-600 px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition"><i class="fas fa-play mr-2"></i>Execute Query</button>
+        </div>
+        <div class="bg-slate-900 rounded-2xl p-6"><h3 class="text-xl font-bold mb-4">Statistics</h3><div id="statsInfo"><p class="text-slate-400">Click execute to see results</p></div></div>
+    </div>
+    <div class="bg-slate-900 rounded-2xl p-6"><h3 class="text-xl font-bold mb-4">Query Results</h3><div id="queryResults" class="overflow-x-auto"><p class="text-slate-400 text-center py-8">Select a query and click Execute to view results</p></div></div>
+</div>
+
+<!-- Users Tab -->
+<div id="users" class="tab-content">
+    <div class="bg-slate-900 rounded-3xl p-8 border border-slate-800 mb-8">
+        <div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold">👥 User Management</h2><button onclick="showAddUserModal()" class="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 rounded-xl font-bold hover:scale-105 transition"><i class="fas fa-plus mr-2"></i>Add New User</button></div>
+        <div id="usersList" class="overflow-x-auto"></div>
+    </div>
+</div>
+
+<!-- Bookings Tab -->
+<div id="bookings" class="tab-content">
+    <div class="bg-slate-900 rounded-3xl p-8 border border-slate-800"><h2 class="text-3xl font-bold mb-6">📅 Booking Management</h2><div id="bookingsList" class="overflow-x-auto"></div></div>
+</div>
+
+</div>
+
+<!-- User Modal -->
+<div id="userModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+    <div class="bg-slate-900 rounded-2xl p-8 max-w-md w-full mx-4 border border-slate-700">
+        <h3 id="userModalTitle" class="text-2xl font-bold mb-4">Add New User</h3>
+        <input type="hidden" id="editUserId">
+        <div class="space-y-4"><input type="text" id="userName" placeholder="Full Name" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"><input type="email" id="userEmail" placeholder="Email Address" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"><input type="tel" id="userPhone" placeholder="Phone Number" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"></div>
+        <div class="flex gap-3 mt-6"><button onclick="saveUser()" class="flex-1 bg-indigo-600 px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition">Save</button><button onclick="closeUserModal()" class="flex-1 bg-slate-700 px-6 py-3 rounded-xl font-bold hover:bg-slate-600 transition">Cancel</button></div>
+    </div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:5000/api';
+
+function showNotification(message, type = 'success') {
+    const container = document.getElementById('notificationContainer');
+    const notification = document.createElement('div');
+    notification.className = `notification bg-${type === 'success' ? 'green' : 'red'}-600 text-white px-6 py-3 rounded-lg shadow-lg mb-3`;
+    notification.innerHTML = `<div class="flex items-center gap-3"><i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i><span>${message}</span></div>`;
+    container.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+
+function showTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(btn => { btn.classList.remove('bg-indigo-600'); btn.classList.add('hover:bg-slate-800'); });
+    if(event && event.target && event.target.classList && event.target.classList.contains('tab-btn')) { event.target.classList.add('bg-indigo-600'); event.target.classList.remove('hover:bg-slate-800'); }
+    if(tabId === 'users') loadUsers();
+    if(tabId === 'bookings') loadBookings();
+    if(tabId === 'booking') { loadUsersForDropdown(); loadMoviesForBooking(); }
+    if(tabId === 'home') loadMovies();
+}
+
+async function loadMovies() {
+    try {
+        const response = await fetch(`${API_BASE}/movies`);
+        const result = await response.json();
+        if(result.success && result.data) {
+            document.getElementById('moviesList').innerHTML = result.data.map(movie => `
+                <div class="movie-card bg-slate-900 rounded-2xl overflow-hidden transition duration-300">
+                    <img src="https://picsum.photos/400/600?${movie.movie_id}" class="w-full h-72 object-cover">
+                    <div class="p-4"><h3 class="font-bold text-lg">${movie.title}</h3><button onclick="bookThisMovie(${movie.movie_id})" class="mt-2 w-full bg-indigo-600 px-4 py-2 rounded-lg text-sm hover:bg-indigo-700 transition">Book Now</button></div>
+                </div>`).join('');
+        }
+    } catch(error) { showNotification('Error loading movies', 'error'); }
+}
+
+async function loadUsersForDropdown() {
+    try {
+        const response = await fetch(`${API_BASE}/users`);
+        const result = await response.json();
+        if(result.success && result.data) {
+            document.getElementById('bookingUserId').innerHTML = '<option value="">Select a user...</option>' + result.data.map(user => `<option value="${user.user_id}">${user.name} (${user.email})</option>`).join('');
+        }
+    } catch(error) { console.error(error); }
+}
+
+async function loadMoviesForBooking() {
+    try {
+        const response = await fetch(`${API_BASE}/movies`);
+        const result = await response.json();
+        if(result.success && result.data) {
+            document.getElementById('bookingMovieId').innerHTML = '<option value="">Select a movie...</option>' + result.data.map(movie => `<option value="${movie.movie_id}">${movie.title}</option>`).join('');
+        }
+    } catch(error) { console.error(error); }
+}
+
+async function loadShowsForBooking() {
+    const movieId = document.getElementById('bookingMovieId').value;
+    if(!movieId) { document.getElementById('bookingShowId').innerHTML = '<option value="">First select a movie...</option>'; return; }
+    try {
+        const response = await fetch(`${API_BASE}/shows?movie_id=${movieId}`);
+        const result = await response.json();
+        if(result.success && result.data) {
+            const showSelect = document.getElementById('bookingShowId');
+            if(result.data.length === 0) showSelect.innerHTML = '<option value="">No shows available</option>';
+            else showSelect.innerHTML = '<option value="">Select a show time...</option>' + result.data.map(show => `<option value="${show.show_id}" data-price="${show.ticket_price}">${new Date(show.show_time).toLocaleString()} - ${show.theatre_name} (₹${show.ticket_price})</option>`).join('');
+        }
+    } catch(error) { console.error(error); }
+}
+
+async function calculatePrice() {
+    const showSelect = document.getElementById('bookingShowId');
+    const selectedOption = showSelect.options[showSelect.selectedIndex];
+    const showId = showSelect.value;
+    const tickets = document.getElementById('bookingTickets').value;
+    if(!showId) { showNotification('Please select a show first', 'error'); return; }
+    if(selectedOption && selectedOption.dataset.price) {
+        const total = parseFloat(selectedOption.dataset.price) * parseInt(tickets);
+        document.getElementById('bookingTotalPrice').value = `₹${total.toFixed(2)}`;
+    }
+}
+
+async function confirmBooking() {
+    const userId = document.getElementById('bookingUserId').value;
+    const showId = document.getElementById('bookingShowId').value;
+    const tickets = document.getElementById('bookingTickets').value;
+    if(!userId || !showId || !tickets) { showNotification('Please fill all details', 'error'); return; }
+    try {
+        const response = await fetch(`${API_BASE}/bookings/create`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ user_id: parseInt(userId), show_id: parseInt(showId), number_of_tickets: parseInt(tickets) })
+        });
+        const result = await response.json();
+        if(result.success) {
+            showNotification('Booking confirmed successfully!');
+            document.getElementById('bookingUserId').value = '';
+            document.getElementById('bookingMovieId').value = '';
+            document.getElementById('bookingShowId').innerHTML = '<option value="">First select a movie...</option>';
+            document.getElementById('bookingTickets').value = '1';
+            document.getElementById('bookingTotalPrice').value = '';
+            showTab('bookings');
+            loadBookings();
+        } else { showNotification(result.message, 'error'); }
+    } catch(error) { showNotification('Error creating booking', 'error'); }
+}
+
+function bookThisMovie(movieId) {
+    showTab('booking');
+    setTimeout(() => {
+        const movieSelect = document.getElementById('bookingMovieId');
+        for(let i = 0; i < movieSelect.options.length; i++) {
+            if(movieSelect.options[i].value == movieId) { movieSelect.selectedIndex = i; loadShowsForBooking(); break; }
+        }
+    }, 100);
+}
+
+async function loadUsers() {
+    try {
+        const response = await fetch(`${API_BASE}/users`);
+        const result = await response.json();
+        if(result.success && result.data) {
+            if(result.data.length === 0) document.getElementById('usersList').innerHTML = '<p class="text-center text-slate-400 py-8">No users found.</p>';
+            else {
+                document.getElementById('usersList').innerHTML = `<table class="w-full"><thead class="border-b border-slate-700"><tr><th class="text-left py-3">ID</th><th class="text-left py-3">Name</th><th class="text-left py-3">Email</th><th class="text-left py-3">Phone</th><th class="text-left py-3">Actions</th></tr></thead><tbody>${result.data.map(user => `<tr class="border-b border-slate-800"><td class="py-3">${user.user_id}</td><td class="py-3">${user.name}</td><td class="py-3">${user.email}</td><td class="py-3">${user.phone || '-'}</td><td class="py-3"><button onclick='editUser(${user.user_id}, "${user.name}", "${user.email}", "${user.phone || ""}")' class="text-blue-400 hover:text-blue-300 mr-3"><i class="fas fa-edit"></i></button><button onclick="deleteUser(${user.user_id})" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></table>`;
+            }
+        }
+    } catch(error) { showNotification('Error loading users', 'error'); }
+}
+
+async function saveUser() {
+    const userId = document.getElementById('editUserId').value;
+    const name = document.getElementById('userName').value;
+    const email = document.getElementById('userEmail').value;
+    const phone = document.getElementById('userPhone').value;
+    if(!name || !email) { showNotification('Name and email are required', 'error'); return; }
+    try {
+        let response;
+        if(userId) response = await fetch(`${API_BASE}/users`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user_id: parseInt(userId), name, email, phone}) });
+        else response = await fetch(`${API_BASE}/users`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, email, phone}) });
+        const result = await response.json();
+        if(result.success) { showNotification(userId ? 'User updated' : 'User created'); closeUserModal(); loadUsers(); loadUsersForDropdown(); }
+        else showNotification(result.error, 'error');
+    } catch(error) { showNotification('Error saving user', 'error'); }
+}
+
+async function deleteUser(userId) {
+    if(confirm('Delete this user and all bookings?')) {
+        const response = await fetch(`${API_BASE}/users?user_id=${userId}`, {method: 'DELETE'});
+        const result = await response.json();
+        if(result.success) { showNotification('User deleted'); loadUsers(); loadUsersForDropdown(); }
+        else showNotification(result.error, 'error');
+    }
+}
+
+function editUser(id, name, email, phone) {
+    document.getElementById('userModalTitle').textContent = 'Edit User';
+    document.getElementById('editUserId').value = id;
+    document.getElementById('userName').value = name;
+    document.getElementById('userEmail').value = email;
+    document.getElementById('userPhone').value = phone;
+    document.getElementById('userModal').style.display = 'flex';
+}
+
+function showAddUserModal() {
+    document.getElementById('userModalTitle').textContent = 'Add New User';
+    document.getElementById('editUserId').value = '';
+    document.getElementById('userName').value = '';
+    document.getElementById('userEmail').value = '';
+    document.getElementById('userPhone').value = '';
+    document.getElementById('userModal').style.display = 'flex';
+}
+
+function closeUserModal() { document.getElementById('userModal').style.display = 'none'; }
+
+async function loadBookings() {
+    try {
+        const response = await fetch(`${API_BASE}/bookings`);
+        const result = await response.json();
+        if(result.success && result.data) {
+            if(result.data.length === 0) document.getElementById('bookingsList').innerHTML = '<p class="text-center text-slate-400 py-8">No bookings found.</p>';
+            else {
+                document.getElementById('bookingsList').innerHTML = `<table class="w-full"><thead class="border-b border-slate-700"><tr><th class="text-left py-3">ID</th><th class="text-left py-3">User</th><th class="text-left py-3">Movie</th><th class="text-left py-3">Show Time</th><th class="text-left py-3">Tickets</th><th class="text-left py-3">Date</th><th class="text-left py-3">Action</th></tr></thead><tbody>${result.data.map(booking => `<tr class="border-b border-slate-800"><td class="py-3">${booking.booking_id}</td><td class="py-3">${booking.user_name}</td><td class="py-3">${booking.movie_title}</td><td class="py-3">${new Date(booking.show_time).toLocaleString()}</td><td class="py-3">${booking.number_of_tickets}</td><td class="py-3">${new Date(booking.booking_date).toLocaleDateString()}</td><td class="py-3"><button onclick="deleteBooking(${booking.booking_id})" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i> Cancel</button></td></tr>`).join('')}</tbody></table>`;
+            }
+        }
+    } catch(error) { showNotification('Error loading bookings', 'error'); }
+}
+
+async function deleteBooking(bookingId) {
+    if(confirm('Cancel this booking?')) {
+        const response = await fetch(`${API_BASE}/bookings?booking_id=${bookingId}`, {method: 'DELETE'});
+        const result = await response.json();
+        if(result.success) { showNotification('Booking cancelled'); loadBookings(); }
+        else showNotification(result.error, 'error');
+    }
+}
+
+async function executeQuery() {
+    const queryId = document.getElementById('querySelector').value;
+    let url = `${API_BASE}/queries/${queryId}`;
+    if(queryId === '2') { const movieId = prompt('Enter Movie ID:'); if(!movieId) return; url += `?movie_id=${movieId}`; }
+    else if(queryId === '8') { const userId = prompt('Enter User ID:'); if(!userId) return; url += `?user_id=${userId}`; }
+    try {
+        const response = await fetch(url);
+        const result = await response.json();
+        if(result.success && result.data) {
+            if(result.data.length === 0) { document.getElementById('queryResults').innerHTML = '<p class="text-center text-slate-400 py-8">No results found.</p>'; document.getElementById('statsInfo').innerHTML = '<p class="text-slate-400">Total records: 0</p>'; }
+            else {
+                const columns = Object.keys(result.data[0]);
+                document.getElementById('queryResults').innerHTML = `<table class="w-full text-sm"><thead class="border-b border-slate-700"><tr>${columns.map(col => `<th class="text-left py-2 px-3">${col}</th>`).join('')}</tr></thead><tbody>${result.data.map(row => `<tr class="border-b border-slate-800">${columns.map(col => `<td class="py-2 px-3">${row[col] !== null ? row[col] : '-'}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+                document.getElementById('statsInfo').innerHTML = `<p class="text-slate-400">Total records: ${result.data.length}</p>`;
+            }
+        } else { document.getElementById('queryResults').innerHTML = `<p class="text-center text-red-400 py-8">Error: ${result.error || 'Query failed'}</p>`; }
+    } catch(error) { document.getElementById('queryResults').innerHTML = '<p class="text-center text-red-400 py-8">Connection error</p>'; }
+}
+
+document.addEventListener('DOMContentLoaded', () => { loadMovies(); loadUsersForDropdown(); loadMoviesForBooking(); });
+</script>
+</body>
+</html>
